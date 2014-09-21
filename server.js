@@ -3,6 +3,14 @@
 var http = require('http');
 var url = require('url');
 
+if (process.argv.length != 3) {
+    console.log("Usage: node server.js hostname");
+    process.kill();
+}
+
+var hostName = process.argv[2];
+console.log("Scan for " + hostName);
+
 var server = http.createServer(function (request, response) {
 
     var requestBody = '';
@@ -22,9 +30,15 @@ var server = http.createServer(function (request, response) {
     request.on('end', function () {
         try {
             var data = JSON.parse(requestBody);
-            console.log("Received request for "+ data.url);
+            console.log("Received request for " + data.url);
 
             var parseUrl = url.parse(data.url);
+
+            if (parseUrl.hostname != hostName) {
+                console.log("Hostname doesn't match " + parseUrl.hostname + ' ' + hostName);
+                response.end(JSON.stringify({returnCode: 'KO', page: parseUrl.path}));
+                return;
+            }
 
             var options = {
                 hostname: parseUrl.hostname,
@@ -32,10 +46,12 @@ var server = http.createServer(function (request, response) {
                 path: parseUrl.path
             };
 
-            var result = {page: parseUrl.pathname, withParameter: parseUrl.search != null ? true : false, queryString: parseUrl.search};
+            var result = {returnCode: 'OK', page: parseUrl.pathname, withParameter: parseUrl.search != null ? true : false, queryString: parseUrl.search};
 
             http.get(options, function (clientResponse) {
                 var responseBody = "";
+                result.responseCode = clientResponse.statusCode;
+                result.location = clientResponse.headers.location;
                 clientResponse.on('data', function (chunk) {
                     responseBody += chunk;
                 });
