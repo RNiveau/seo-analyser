@@ -34,6 +34,11 @@ var server = http.createServer(function (request, response) {
 
             var parseUrl = url.parse(data.url);
 
+            console.log("Hostname="+parseUrl.hostname);
+
+            if (parseUrl.hostname == null)
+                parseUrl.hostname = hostName;
+
             if (parseUrl.hostname != hostName) {
                 console.log("Hostname doesn't match " + parseUrl.hostname + ' ' + hostName);
                 response.end(JSON.stringify({returnCode: 'KO', page: parseUrl.path}));
@@ -60,7 +65,10 @@ var server = http.createServer(function (request, response) {
                     result.content = responseBody;
                     response.end(JSON.stringify(result));
                 });
-            });
+            }).on("error", function(e) {
+                console.log(e.message);
+                response.end(JSON.stringify(result));
+            });;
         } catch (er) {
             console.log("error" + er);
             // uh oh!  bad json!
