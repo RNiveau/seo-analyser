@@ -29,12 +29,17 @@ var server = http.createServer(function (request, response) {
     // the end event tells you that you have entire requestBody
     request.on('end', function () {
         try {
+            if (request.method == "OPTIONS") {
+                response.end();
+                return;
+            }
+
             var data = JSON.parse(requestBody);
             console.log("Received request for " + data.url);
 
             var parseUrl = url.parse(data.url);
 
-            console.log("Hostname="+parseUrl.hostname);
+            console.log("Hostname=" + parseUrl.hostname);
 
             if (parseUrl.hostname == null)
                 parseUrl.hostname = hostName;
@@ -53,7 +58,7 @@ var server = http.createServer(function (request, response) {
 
             var result = {returnCode: 'OK', page: parseUrl.pathname, withParameter: parseUrl.search != null ? true : false, queryString: parseUrl.search};
 
-            http.get(options, function (clientResponse) {
+            http.get(options,function (clientResponse) {
                 var responseBody = "";
                 result.responseCode = clientResponse.statusCode;
                 result.location = clientResponse.headers.location;
@@ -65,10 +70,11 @@ var server = http.createServer(function (request, response) {
                     result.content = responseBody;
                     response.end(JSON.stringify(result));
                 });
-            }).on("error", function(e) {
+            }).on("error", function (e) {
                 console.log(e.message);
                 response.end(JSON.stringify(result));
-            });;
+            });
+            ;
         } catch (er) {
             console.log("error" + er);
             // uh oh!  bad json!
