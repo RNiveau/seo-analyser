@@ -2,6 +2,8 @@
 
 var app = angular.module('app', []);
 
+var thiss = null;
+
 app.config(function ($httpProvider) {
     $httpProvider.defaults.useXDomain = true;
     delete $httpProvider.defaults.headers.common["X-Requested-With"];
@@ -9,6 +11,8 @@ app.config(function ($httpProvider) {
 
 
 app.controller('SeoController', ['$scope', '$http', function ($scope, $http) {
+
+    thiss = this;
 
     this.withoutTitle = {total: 0, pages: []};
 
@@ -20,6 +24,8 @@ app.controller('SeoController', ['$scope', '$http', function ($scope, $http) {
 
     this.scanned = 0;
 
+    this.outLink = 0;
+
     this.firstUrl;
 
     this.tree = {};
@@ -27,12 +33,12 @@ app.controller('SeoController', ['$scope', '$http', function ($scope, $http) {
     this.levels = [];
 
     this.run = function () {
-        this.scanUrl(this.firstUrl, null, 0);
+        this.scanUrl(this.firstUrl, null, null, 0, null);
     };
 
-    this.scanUrl = function (url, search, level) {
+    this.scanUrl = function (url, search, host, level, referer) {
 
-        if (level > 2)
+        if (level > 10)
             return;
         var page = this.tree[url];
         if (page != null && page != undefined) {
@@ -44,13 +50,16 @@ app.controller('SeoController', ['$scope', '$http', function ($scope, $http) {
             }
             return;
         } else {
-            this.tree[url] = {linkIn: 1, levels: level};
+            this.tree[url] = {url: url, linkIn: 1, levels: level, anchor: 0, isOutPage: false, referer: referer};
         }
 
         if (this.levels[level] == undefined)
             this.levels[level] = 1;
         else
             this.levels[level]++;
+
+        if (host == "localhost")
+            host = null;
 
         if (search != null && search != "") {
             url += search;
@@ -61,16 +70,17 @@ app.controller('SeoController', ['$scope', '$http', function ($scope, $http) {
         $http({
             url: "http://localhost:8080",
             method: "POST",
-            data: JSON.stringify({url: url})})
+            data: JSON.stringify({url: url, hostname: host})})
             .success(angular.bind(this, function (json) {
                 if (json.returnCode == 'KO') {
-                    // jQuery("body").append('<div>' + json.page + ' n\'est pas dans le domaine analysé</div>');
+                    this.tree[url].isOutPage = true;
+                    this.outLink++;
                 } else {
                     this.scanned++;
 
                     if (json.responseCode == 404) {
                         this.error404.total++;
-                        this.error404.pages.push(json.page);
+                        this.error404.pages.push(this.tree[url]);
                         return;
                     }
 
@@ -92,11 +102,14 @@ app.controller('SeoController', ['$scope', '$http', function ($scope, $http) {
                     if (json.location != null) {
                         this.error30x.total++;
                         this.error30x.pages.push(json.page);
-                        this.scanUrl(json.location, null, level + 1);
+                        this.scanUrl(json.location, null, null, level + 1, url);
                     }
+                    this.tree[url].outLink = links.size();
                     links.each(angular.bind(this, function (index, link) {
-                        if (!link.pathname.match(/@/g) && !link.pathname.match(/\.(png)|(jpg)|(gif)$/g))
-                            this.scanUrl(link.pathname, link.search, level + 1);
+                        if (link.pathname == url && link.hash !== "") {
+                            this.tree[url].anchor++;
+                        } else if (!link.pathname.match(/@/g) && !link.pathname.match(/\.(png)|(jpg)|(gif)$/g))
+                            this.scanUrl(link.pathname, link.search, link.hostname, level + 1, url);
                     }));
                 }
             }));

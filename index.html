@@ -14,7 +14,9 @@
 <div>
     <p>Pages analysées: {{seo.scanned}}</p>
 
-    <p ng-repeat="level in seo.levels">
+    <p>Liens externes: {{seo.outLink}}</p>
+
+    <p ng-repeat="level in seo.levels track by $index">
         Page de niveau {{$index}}: {{level}}
     </p>
 
@@ -24,16 +26,20 @@
     </p>
 
     <p>Pages 404: {{seo.error404.total}}
-
-    <p ng-repeat="page in seo.error404.pages track by $index">{{page}}</p>
+    <p ng-repeat="page in seo.error404.pages track by $index">{{page.url}} from {{page.referer}}</p>
     </p>
-    <p>Pages 30x: {{seo.error30x.total}}
 
+    <p>Pages 30x: {{seo.error30x.total}}
     <p ng-repeat="page in seo.error30x.pages track by $index">{{page}}</p>
     </p>
-    <p>Pages avec paramètres: {{seo.withParameters.total}}
 
+    <p>Pages avec paramètres: {{seo.withParameters.total}}
     <p ng-repeat="page in seo.withParameters.pages track by $index">{{page}}</p>
+    </p>
+
+    <p>Pages:</p>
+    <p ng-repeat="page in seo.tree track by $index" >
+       {{page.url}}
     </p>
 
 </div>
