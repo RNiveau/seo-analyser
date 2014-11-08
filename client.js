@@ -32,9 +32,22 @@ app.controller('SeoController', ['$scope', '$http', function ($scope, $http) {
 
     this.levels = [];
 
-    this.run = function () {
-        this.scanUrl(this.firstUrl, null, null, 0, null);
-    };
+    this.averageLinkByPage = 0;
+
+    this.pageWithMoreUrl = [];
+
+    this.calcul = function () {
+        Object.keys(this.tree).forEach(angular.bind(this, function (key) {
+            var page = this.tree[key];
+            if (page.linkIn > this.scanned)
+                this.pageWithMoreUrl.push(page);
+        }));
+    },
+
+        this.run = function () {
+            this.scanUrl(this.firstUrl, null, null, 0, null);
+            var putABreakPointHere = "";
+        };
 
     this.scanUrl = function (url, search, host, level, referer) {
 
@@ -53,34 +66,37 @@ app.controller('SeoController', ['$scope', '$http', function ($scope, $http) {
             this.tree[url] = {url: url, linkIn: 1, levels: level, anchor: 0, isOutPage: false, referer: referer};
         }
 
-        if (this.levels[level] == undefined)
-            this.levels[level] = 1;
-        else
-            this.levels[level]++;
-
         if (host == "localhost")
             host = null;
 
+        var sendUrl = url
         if (search != null && search != "") {
-            url += search;
+            sendUrl += search;
             this.withParameters.total++;
-            this.withParameters.pages.push(url);
+            this.withParameters.pages.push(sendUrl);
         }
 
         $http({
             url: "http://localhost:8080",
             method: "POST",
-            data: JSON.stringify({url: url, hostname: host})})
+            data: JSON.stringify({url: sendUrl, hostname: host})})
             .success(angular.bind(this, function (json) {
+                var urlOnWork = this.tree[url];
                 if (json.returnCode == 'KO') {
-                    this.tree[url].isOutPage = true;
+                    if (urlOnWork == undefined)
+                        console.log(url);
+                    urlOnWork.isOutPage = true;
                     this.outLink++;
                 } else {
                     this.scanned++;
+                    if (this.levels[level] == undefined)
+                        this.levels[level] = 1;
+                    else
+                        this.levels[level]++;
 
                     if (json.responseCode == 404) {
                         this.error404.total++;
-                        this.error404.pages.push(this.tree[url]);
+                        this.error404.pages.push(urlOnWork);
                         return;
                     }
 
@@ -95,19 +111,20 @@ app.controller('SeoController', ['$scope', '$http', function ($scope, $http) {
                         title = 'Title: ' + jQuery(json.content).filter('title')[0].text;
                     else {
                         this.withoutTitle.total++;
-                        this.withoutTitle.pages.push(json.page);
+                        this.withoutTitle.pages.push(urlOnWork);
                     }
                     //jQuery("body").append('<div>' + name + '<br/>' + response + '<br/>' + parameters + '<br/>' + textLink + '' +
                     //  '<br/>' + title + '<br/>' + location + '</div>');
                     if (json.location != null) {
                         this.error30x.total++;
-                        this.error30x.pages.push(json.page);
+                        this.error30x.pages.push(urlOnWork);
                         this.scanUrl(json.location, null, null, level + 1, url);
                     }
-                    this.tree[url].outLink = links.size();
+                    urlOnWork.outLink = links.size();
+                    this.averageLinkByPage += links.size();
                     links.each(angular.bind(this, function (index, link) {
                         if (link.pathname == url && link.hash !== "") {
-                            this.tree[url].anchor++;
+                            urlOnWork.anchor++;
                         } else if (!link.pathname.match(/@/g) && !link.pathname.match(/\.(png)|(jpg)|(gif)$/g))
                             this.scanUrl(link.pathname, link.search, link.hostname, level + 1, url);
                     }));

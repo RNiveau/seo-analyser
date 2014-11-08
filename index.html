@@ -10,6 +10,7 @@
 <form novalidate>
     <input type="text" ng-model="seo.firstUrl" placeholder="Url à analyser"/>
     <input type="submit" value="Analyser"/>
+    <button ng-click="seo.calcul();" >Calcul</button>
 </form>
 <div>
     <p>Pages analysées: {{seo.scanned}}</p>
@@ -22,24 +23,28 @@
 
     <p>Pages sans title: {{seo.withoutTitle.total}}
 
-    <p ng-repeat="page in seo.withoutTitle.pages track by $index">{{page}}</p>
+    <p ng-repeat="page in seo.withoutTitle.pages track by $index">{{page.url}} from {{page.referer}}</p>
     </p>
 
     <p>Pages 404: {{seo.error404.total}}
+
     <p ng-repeat="page in seo.error404.pages track by $index">{{page.url}} from {{page.referer}}</p>
     </p>
 
     <p>Pages 30x: {{seo.error30x.total}}
-    <p ng-repeat="page in seo.error30x.pages track by $index">{{page}}</p>
+
+    <p ng-repeat="page in seo.error30x.pages track by $index">{{page.url}} from {{page.referer}}</p>
     </p>
 
     <p>Pages avec paramètres: {{seo.withParameters.total}}
+
     <p ng-repeat="page in seo.withParameters.pages track by $index">{{page}}</p>
     </p>
 
     <p>Pages:</p>
-    <p ng-repeat="page in seo.tree track by $index" >
-       {{page.url}}
+
+    <p ng-repeat="page in seo.tree track by $index">
+        {{page.url}}
     </p>
 
 </div>
